@@ -16,6 +16,8 @@ class MainActivity : AppCompatActivity()
         val pseudoCodeManager: PseudoCodeManager = PseudoCodeManager()
         val phrase = pseudoCodeManager.getLostPhrase(getCode())
 
+        phraseView.setPhase(phrase)
+
         Log.d("PHRASE", phrase.toString())
     }
 
