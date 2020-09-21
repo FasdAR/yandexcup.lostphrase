@@ -17,9 +17,11 @@ import ru.fasdev.yandexlostphrase.manager.model.LostPhrase
 import ru.fasdev.yandexlostphrase.manager.model.anim.Animation
 import ru.fasdev.yandexlostphrase.manager.model.anim.Move
 import ru.fasdev.yandexlostphrase.manager.model.anim.Rotate
+import ru.fasdev.yandexlostphrase.manager.model.anim.Scale
 import ru.fasdev.yandexlostphrase.manager.model.shape.Circle
 import ru.fasdev.yandexlostphrase.manager.model.shape.PseudoShape
 import ru.fasdev.yandexlostphrase.manager.model.shape.Rectangle
+import java.lang.Exception
 
 class LostPhraseView : View
 {
@@ -56,6 +58,8 @@ class LostPhraseView : View
             phrase?.shapes?.forEach {
                 //val path: Path = Path()
 
+                mainPaint.setColor(it.color.color)
+
                 when (it)
                 {
                     is Rectangle -> {
@@ -64,16 +68,13 @@ class LostPhraseView : View
                         val left = (it.centerX - (it.width / 2)).toFloat()
                         val right = (it.centerX + (it.width / 2)).toFloat()
 
-                        mainPaint.setColor(it.color.color)
-
                         canvas?.save()
                         canvas?.rotate(it.angle.toFloat(), it.centerX.toFloat(), it.centerY.toFloat())
                         canvas?.drawRect(left, top, right, bottom, mainPaint)
                         canvas?.restore()
-                        Log.d("CENteR_X", it.centerX.toString())
                     }
                     is Circle -> {
-
+                        canvas?.drawCircle(it.centerX.toFloat(), it.centerY.toFloat(), it.radius.toFloat(), mainPaint)
                     }
                 }
 
@@ -111,25 +112,51 @@ class LostPhraseView : View
                                 animator?.add(animationY)
                             }
                             is Rotate -> {
-                                val shape = (it as Rectangle)
+                                try {
+                                    val shape = (it as Rectangle)
 
-                                val rotateAnim = ValueAnimator.ofFloat(shape.angle.toFloat(), shape.angle.toFloat() + anim.angle.toFloat())
-                                rotateAnim.addUpdateListener { animator->
-                                    val values = animator.animatedValue as Float
-                                    it.angle = values.toDouble()
+                                    val rotateAnim = ValueAnimator.ofFloat(shape.angle.toFloat(), shape.angle.toFloat() + anim.angle.toFloat())
+                                    rotateAnim.addUpdateListener { animator->
+                                        val values = animator.animatedValue as Float
+                                        it.angle = values.toDouble()
 
-                                    invalidate()
+                                        invalidate()
+                                    }
 
-                                    Log.d("ANGLE", it.angle.toString())
+                                    animator?.add(rotateAnim)
                                 }
+                                catch (ex: Exception)
+                                {
+                                    Log.e("ERROR", ex.toString())
+                                }
+                            }
+                            is Scale -> {
+                                if (it is Rectangle) {
+                                    val scaleAnimationWidth = ValueAnimator.ofFloat(it.width.toFloat(), (it.width * anim.destScale).toFloat())
+                                    scaleAnimationWidth.addUpdateListener { animator ->
+                                        val values = animator.animatedValue as Float
+                                        it.width = values.toDouble()
 
-                                animator?.add(rotateAnim)
+                                        invalidate()
+                                    }
+
+                                    val scaleAnimationHeight = ValueAnimator.ofFloat(it.height.toFloat(), (it.height * anim.destScale).toFloat())
+                                    scaleAnimationHeight.addUpdateListener { animator ->
+                                        val values = animator.animatedValue as Float
+                                        it.height = values.toDouble()
+
+                                        invalidate()
+                                    }
+
+                                    animator?.add(scaleAnimationHeight)
+                                    animator?.add(scaleAnimationWidth)
+                                }
                             }
                         }
 
                         animator?.forEach {
                             it.setDuration(anim.time.toLong())
-                            it.setInterpolator(AccelerateDecelerateInterpolator())
+                            //it.setInterpolator(LinearOutSlowInInterpolator())
 
                             if (anim.isCycle)
                             {

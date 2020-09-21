@@ -83,7 +83,7 @@ class PseudoCodeManager
         val centerX: Double = parseLine.get(1).toDouble()
         val centerY: Double = parseLine.get(2).toDouble()
         val radius: Double = parseLine.get(3).toDouble()
-        val color: ColorShape = ColorShape.valueOf(parseLine.get(6).toUpperCase())
+        val color: ColorShape = ColorShape.valueOf(parseLine.get(4).toUpperCase())
         val animations: List<Animation> = getAnimations(indexLine)
 
         return Circle(centerX, centerY, radius, color, animations)
