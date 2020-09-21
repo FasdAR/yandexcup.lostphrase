@@ -11,9 +11,12 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.AccelerateDecelerateInterpolator
+import androidx.interpolator.view.animation.LinearOutSlowInInterpolator
 import ru.fasdev.yandexlostphrase.manager.model.LostPhrase
 import ru.fasdev.yandexlostphrase.manager.model.anim.Animation
 import ru.fasdev.yandexlostphrase.manager.model.anim.Move
+import ru.fasdev.yandexlostphrase.manager.model.anim.Rotate
 import ru.fasdev.yandexlostphrase.manager.model.shape.Circle
 import ru.fasdev.yandexlostphrase.manager.model.shape.PseudoShape
 import ru.fasdev.yandexlostphrase.manager.model.shape.Rectangle
@@ -30,6 +33,7 @@ class LostPhraseView : View
 
     private var phrase: LostPhrase? = null
     private var isInitDraw: Boolean = false
+    private var isAnimStart: Boolean = false
 
     fun setPhase(lostPhase: LostPhrase)
     {
@@ -50,7 +54,8 @@ class LostPhraseView : View
         if (phrase != null)
         {
             phrase?.shapes?.forEach {
-                val path: Path = Path()
+                //val path: Path = Path()
+
                 when (it)
                 {
                     is Rectangle -> {
@@ -59,24 +64,80 @@ class LostPhraseView : View
                         val left = (it.centerX - (it.width / 2)).toFloat()
                         val right = (it.centerX + (it.width / 2)).toFloat()
 
-                        path.addRect(left, top, right, bottom, Path.Direction.CW)
+                        mainPaint.setColor(it.color.color)
+
+                        canvas?.save()
+                        canvas?.rotate(it.angle.toFloat(), it.centerX.toFloat(), it.centerY.toFloat())
+                        canvas?.drawRect(left, top, right, bottom, mainPaint)
+                        canvas?.restore()
+                        Log.d("CENteR_X", it.centerX.toString())
                     }
                     is Circle -> {
 
                     }
                 }
 
-                mainPaint.setColor(it.color.color)
+                //canvas?.drawPath(path, mainPaint)
+            }
 
-                canvas?.drawPath(path, mainPaint)
+            if (!isAnimStart)
+            {
+                isAnimStart = true
 
-                it.animations.forEach {anim ->
-                    when (anim)
-                    {
-                        is Move -> {
-                            val pathAnimator = ObjectAnimator.ofFloat(this, "x", "y", path)
-                            pathAnimator.setDuration(anim.time.toLong())
-                            pathAnimator.start()
+                phrase?.shapes?.forEach {
+                    it.animations.forEach {anim ->
+                        var animator: ArrayList<ValueAnimator>? = ArrayList()
+
+                        when (anim)
+                        {
+                            is Move -> {
+                                val animationX = ValueAnimator.ofFloat(it.centerX.toFloat(), anim.destX.toFloat())
+                                animationX.addUpdateListener { animator ->
+                                    val values = animator.animatedValue as Float
+                                    it.centerX = values.toDouble()
+
+                                    invalidate()
+                                }
+
+                                val animationY = ValueAnimator.ofFloat(it.centerY.toFloat(), anim.destY.toFloat())
+                                animationY.addUpdateListener { animator ->
+                                    val values = animator.animatedValue as Float
+                                    it.centerY = values.toDouble()
+
+                                    invalidate()
+                                }
+
+                                animator?.add(animationX)
+                                animator?.add(animationY)
+                            }
+                            is Rotate -> {
+                                val shape = (it as Rectangle)
+
+                                val rotateAnim = ValueAnimator.ofFloat(shape.angle.toFloat(), shape.angle.toFloat() + anim.angle.toFloat())
+                                rotateAnim.addUpdateListener { animator->
+                                    val values = animator.animatedValue as Float
+                                    it.angle = values.toDouble()
+
+                                    invalidate()
+
+                                    Log.d("ANGLE", it.angle.toString())
+                                }
+
+                                animator?.add(rotateAnim)
+                            }
+                        }
+
+                        animator?.forEach {
+                            it.setDuration(anim.time.toLong())
+                            it.setInterpolator(AccelerateDecelerateInterpolator())
+
+                            if (anim.isCycle)
+                            {
+                                it.repeatMode = ValueAnimator.REVERSE
+                                it.repeatCount = ValueAnimator.INFINITE
+                            }
+
+                            it.start()
                         }
                     }
                 }
